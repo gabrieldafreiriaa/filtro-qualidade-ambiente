@@ -16,6 +16,7 @@
         <quarkus.platform.version>3.40.1</quarkus.platform.version>
         <skipITs>true</skipITs>
         <surefire-plugin.version>3.5.6</surefire-plugin.version>
+        <boofcv.version>1.5.0</boofcv.version>
     </properties>
 
     <dependencyManagement>
@@ -31,6 +32,16 @@
     </dependencyManagement>
 
     <dependencies>
+        <dependency>
+            <groupId>org.boofcv</groupId>
+            <artifactId>boofcv-core</artifactId>
+            <version>${boofcv.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.boofcv</groupId>
+            <artifactId>boofcv-swing</artifactId>
+            <version>${boofcv.version}</version>
+        </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-rest-jackson</artifactId>
