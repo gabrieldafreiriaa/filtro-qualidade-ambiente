@@ -14,8 +14,8 @@ public class FiltroLuminancia {
     public static final String REGIAO = "IMAGEM_TOTAL";
 
     public ResultadoAvaliacao avaliar(GrayU8 imagem) {
-        // 1. Validação de segurança: a imagem veio nula?
-        if (imagem == null) {
+        // 1. Valida a presença da imagem e de pixels para análise.
+        if (imagem == null || imagem.width <= 0 || imagem.height <= 0) {
             return new ResultadoAvaliacao(
                     "LUMINANCIA",
                     StatusAvaliacao.ENTRADA_INVALIDA,

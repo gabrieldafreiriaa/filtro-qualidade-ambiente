@@ -7,6 +7,8 @@ import br.gov.pr.celepar.qualidadeimagem.resultado.StatusAvaliacao;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 public class FiltroLuminanciaTest {
 
@@ -60,5 +62,26 @@ public class FiltroLuminanciaTest {
         ResultadoAvaliacao resultado = filtro.avaliar(null);
 
         Assertions.assertEquals(StatusAvaliacao.ENTRADA_INVALIDA, resultado.status());
+    }
+
+    @ParameterizedTest
+    @CsvSource({"0, 0", "0, 100", "100, 0"})
+    void deveRetornarEntradaInvalidaParaImagemVazia(int largura, int altura) {
+        ResultadoAvaliacao resultado = filtro.avaliar(new GrayU8(largura, altura));
+
+        Assertions.assertEquals(StatusAvaliacao.ENTRADA_INVALIDA, resultado.status());
+        Assertions.assertTrue(Double.isFinite(resultado.valorMedido()));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"59, REPROVADO", "60, APROVADO", "200, APROVADO", "201, REPROVADO"})
+    void deveRespeitarLimitesInclusivos(int luminancia, StatusAvaliacao statusEsperado) {
+        GrayU8 imagem = new GrayU8(100, 100);
+        ImageMiscOps.fill(imagem, luminancia);
+
+        ResultadoAvaliacao resultado = filtro.avaliar(imagem);
+
+        Assertions.assertEquals(statusEsperado, resultado.status());
+        Assertions.assertEquals((double) luminancia, resultado.valorMedido(), 0.001);
     }
 }
