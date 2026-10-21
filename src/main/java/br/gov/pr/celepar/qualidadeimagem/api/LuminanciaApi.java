@@ -17,10 +17,13 @@ import boofcv.io.image.ConvertBufferedImage;
 import boofcv.struct.image.GrayU8;
 import br.gov.pr.celepar.qualidadeimagem.filtros.luminancia.FiltroLuminancia;
 import br.gov.pr.celepar.qualidadeimagem.resultado.ResultadoAvaliacao;
+import br.gov.pr.celepar.qualidadeimagem.validacao.ValidadorImagem;
 
 @Path("/api/qualidade/luminancia")
 
 public class LuminanciaApi {
+
+    private static final long LIMITE_ARQUIVO_BYTES = 5L * 1024 * 1024;
 
     private final FiltroLuminancia filtro = new FiltroLuminancia();
 
@@ -30,6 +33,9 @@ public class LuminanciaApi {
     public Map<String, Object> avaliar(byte[] fotoBytes) {
         if (fotoBytes == null || fotoBytes.length == 0) {
             return Map.of("mensagem", "Nenhuma imagem recebida.");
+        }
+        if (!ValidadorImagem.tamanhoArquivoValido(fotoBytes, LIMITE_ARQUIVO_BYTES)) {
+            return Map.of("mensagem", "A imagem excede o tamanho máximo permitido de 5 MiB.");
         }
 
         try (ByteArrayInputStream entrada = new ByteArrayInputStream(fotoBytes)) {

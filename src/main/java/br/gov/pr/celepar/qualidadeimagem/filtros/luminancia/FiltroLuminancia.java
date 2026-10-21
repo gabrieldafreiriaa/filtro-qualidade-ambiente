@@ -5,6 +5,7 @@ import boofcv.alg.misc.ImageStatistics;
 import boofcv.struct.image.GrayU8;
 import br.gov.pr.celepar.qualidadeimagem.resultado.ResultadoAvaliacao;
 import br.gov.pr.celepar.qualidadeimagem.resultado.StatusAvaliacao;
+import br.gov.pr.celepar.qualidadeimagem.validacao.ValidadorImagem;
 
 public class FiltroLuminancia {
 
@@ -15,7 +16,7 @@ public class FiltroLuminancia {
 
     public ResultadoAvaliacao avaliar(GrayU8 imagem) {
         // 1. Valida a presença da imagem e de pixels para análise.
-        if (imagem == null || imagem.width <= 0 || imagem.height <= 0) {
+        if (!ValidadorImagem.valida(imagem)) {
             return new ResultadoAvaliacao(
                     "LUMINANCIA",
                     StatusAvaliacao.ENTRADA_INVALIDA,
