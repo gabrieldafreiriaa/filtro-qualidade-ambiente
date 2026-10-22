@@ -71,8 +71,13 @@ Exemplo ilustrativo de avaliação concluída, HTTP `200`:
 
 ```json
 {
+  "filtro": "LUMINANCIA",
   "status": "APROVADO",
   "media": 128.00,
+  "limiteMinimo": 60.0,
+  "limiteMaximo": 200.0,
+  "escala": "0-255",
+  "regiaoAnalisada": "IMAGEM_TOTAL",
   "mensagem": "Luminância dentro dos parâmetros aceitáveis."
 }
 ```
@@ -89,7 +94,7 @@ Entradas vazias, formatos reais não permitidos, falhas de leitura e limites exc
 
 Um `Content-Type` não aceito pelo endpoint pode gerar HTTP `415`. Rejeições do servidor, anteriores ao método, podem ter outro formato de resposta. A ordem das propriedades JSON não é garantida.
 
-O JSON atual contém somente os campos acima. Escala, limites e região estão disponíveis no resultado Java, mas ainda não são expostos pela API.
+O JSON de uma avaliação concluída contém oito campos: `filtro`, `status`, `media`, `limiteMinimo`, `limiteMaximo`, `escala`, `regiaoAnalisada` e `mensagem`. Os limites se aplicam à média na escala informada; `IMAGEM_TOTAL` indica que todos os pixels da imagem são analisados. As respostas de entrada inválida contêm apenas `mensagem`.
 
 ## Organização e reutilização
 

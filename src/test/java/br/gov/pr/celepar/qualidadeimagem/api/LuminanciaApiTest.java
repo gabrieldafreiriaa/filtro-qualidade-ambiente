@@ -45,7 +45,12 @@ public class LuminanciaApiTest {
                 .then()
                 .statusCode(200)
                 .contentType("application/json")
-                .body("$", aMapWithSize(3))
+                .body("filtro", equalTo("LUMINANCIA"))
+                .body("limiteMinimo", equalTo(60.0f))
+                .body("limiteMaximo", equalTo(200.0f))
+                .body("escala", equalTo("0-255"))
+                .body("regiaoAnalisada", equalTo("IMAGEM_TOTAL"))
+                .body("$", aMapWithSize(8))
                 .body("status", equalTo("APROVADO"))
                 .body("media", equalTo(128.0f))
                 .body("mensagem", equalTo("Luminância dentro dos parâmetros aceitáveis."));

@@ -43,9 +43,14 @@ public class LuminanciaApi {
         ResultadoAvaliacao resultado = filtro.avaliar(imagem.cinza());
 
         return Response.ok(Map.of(
+                "filtro", resultado.filtro(),
                 "status", resultado.status(),
                 "media", BigDecimal.valueOf(resultado.valorMedido())
                         .setScale(2, RoundingMode.HALF_UP),
+                "limiteMinimo", resultado.limiteMinimo(),
+                "limiteMaximo", resultado.limiteMaximo(),
+                "escala", resultado.escala(),
+                "regiaoAnalisada", resultado.regiaoAnalisada(),
                 "mensagem", resultado.mensagem()))
                 .build();
     }
