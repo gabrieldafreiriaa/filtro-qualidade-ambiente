@@ -6,12 +6,30 @@ import static org.hamcrest.Matchers.aMapWithSize;
 
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
 import javax.imageio.ImageIO;
 import org.junit.jupiter.api.Test;
 import io.quarkus.test.junit.QuarkusTest;
 
 @QuarkusTest
 public class LuminanciaApiTest {
+
+    @Test
+    void deveRejeitarGifMesmoComContentTypePng() throws Exception {
+        BufferedImage imagem = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        ImageIO.write(imagem, "gif", bytes);
+
+        given()
+                .contentType("image/png")
+                .body(bytes.toByteArray())
+                .when().post("/api/qualidade/luminancia")
+                .then()
+                .statusCode(400)
+                .contentType("application/json")
+                .body("mensagem", equalTo(
+                        "Formato de imagem não permitido. Envie um arquivo PNG ou JPEG."));
+    }
 
     @Test
     void deveRetornarAvaliacaoEmJson() throws Exception {
@@ -37,11 +55,11 @@ public class LuminanciaApiTest {
     void deveRetornarErroEmJsonParaConteudoInvalido() {
         given()
                 .contentType("image/png")
-                .body("conteudo invalido")
+                .body("conteudo invalido".getBytes(StandardCharsets.UTF_8))
                 .when().post("/api/qualidade/luminancia")
                 .then()
-                .statusCode(200)
+                .statusCode(400)
                 .contentType("application/json")
-                .body("mensagem", equalTo("O conteudo enviado não foi reconhecido como imagem."));
+                .body("mensagem", equalTo("O conteúdo enviado não foi reconhecido como imagem."));
     }
 }

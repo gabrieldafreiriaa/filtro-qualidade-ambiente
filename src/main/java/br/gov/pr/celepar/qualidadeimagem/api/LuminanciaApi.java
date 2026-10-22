@@ -5,6 +5,7 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import java.util.Map;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -28,21 +29,24 @@ public class LuminanciaApi {
     @POST
     @Consumes({ "image/jpeg", "image/png" })
     @Produces(MediaType.APPLICATION_JSON)
-    public Map<String, Object> avaliar(byte[] fotoBytes) {
+    public Response avaliar(byte[] fotoBytes) {
         ImagemPreparada imagem;
 
         try {
             imagem = preparador.preparar(fotoBytes);
         } catch (ValidacaoImagemException e) {
-            return Map.of("mensagem", e.getMessage());
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("mensagem", e.getMessage()))
+                    .build();
         }
 
         ResultadoAvaliacao resultado = filtro.avaliar(imagem.cinza());
 
-        return Map.of(
+        return Response.ok(Map.of(
                 "status", resultado.status(),
                 "media", BigDecimal.valueOf(resultado.valorMedido())
                         .setScale(2, RoundingMode.HALF_UP),
-                "mensagem", resultado.mensagem());
+                "mensagem", resultado.mensagem()))
+                .build();
     }
 }

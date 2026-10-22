@@ -1,66 +1,122 @@
-# filtro-qualidade-ambiente
+# Filtro de Qualidade do Ambiente
 
-This project uses Quarkus, the Supersonic Subatomic Java Framework.
+Projeto Java 21 com Quarkus e BoofCV para avaliar propriedades de imagens por operações clássicas, sem modelos treinados. O escopo implementado é a avaliação da luminância média da imagem inteira. A localização do rosto, o recorte facial, a nitidez e os demais filtros ainda não estão implementados. A aplicação não identifica pessoas nem comprova presença física.
 
-If you want to learn more about Quarkus, please visit its website: <https://quarkus.io/>.
+## Requisitos e execução
 
-## Running the application in dev mode
+É necessário JDK 21. O Maven Wrapper está incluído; a primeira execução precisa de acesso aos repositórios para baixar Maven e dependências.
 
-You can run your application in dev mode that enables live coding using:
-
-```shell script
+```bash
 ./mvnw quarkus:dev
 ```
 
-> **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at <http://localhost:8080/q/dev/>.
+A API fica disponível em `http://localhost:8080`. Para compilar, testar e empacotar:
 
-## Packaging and running the application
-
-The application can be packaged using:
-
-```shell script
+```bash
+./mvnw test
 ./mvnw package
+java -jar target/quarkus-app/quarkus-run.jar
 ```
 
-It produces the `quarkus-run.jar` file in the `target/quarkus-app/` directory.
-Be aware that it’s not an _über-jar_ as the dependencies are copied into the `target/quarkus-app/lib/` directory.
+Os testes geram pequenas imagens em memória, sem precisar de fotografias pessoais. Cobrem o cálculo de luminância, limites de entrada, preparação e respostas HTTP. O endpoint de exemplo `GET /hello` do Quarkus também permanece no projeto.
 
-The application is now runnable using `java -jar target/quarkus-app/quarkus-run.jar`.
+## Endpoint de luminância
 
-If you want to build an _über-jar_, execute the following command:
+`POST /api/qualidade/luminancia`
 
-```shell script
-./mvnw package -Dquarkus.package.jar.type=uber-jar
+Envie os bytes do arquivo diretamente no corpo, com `Content-Type: image/png` ou `image/jpeg`. A entrada não é multipart nem Base64. A resposta da aplicação usa `application/json`.
+
+```bash
+curl -i -X POST http://localhost:8080/api/qualidade/luminancia \
+  -H 'Content-Type: image/png' \
+  -H 'Accept: application/json' \
+  --data-binary '@foto.png'
 ```
 
-The application, packaged as an _über-jar_, is now runnable using `java -jar target/*-runner.jar`.
+Para JPEG, use `Content-Type: image/jpeg` e o caminho do arquivo correspondente.
 
-## Creating a native executable
+No Postman:
 
-You can create a native executable using:
+1. Selecione `POST` e informe a URL do endpoint.
+2. Em **Body → binary**, selecione a imagem.
+3. Em **Headers**, configure o `Content-Type` correspondente ao arquivo.
+4. Envie a requisição e confira o código HTTP e o JSON.
 
-```shell script
-./mvnw package -Dnative
+## Limites e formatos
+
+| Regra | Valor atual |
+|---|---|
+| Formatos reais permitidos | PNG e JPEG |
+| Tamanho máximo do arquivo | 5 MiB, ou 5.242.880 bytes |
+| Quantidade máxima de pixels | 12.000.000 (`largura × altura`) |
+| Dimensões | Largura e altura maiores que zero |
+
+Os limites são inclusivos e estão definidos em `LuminanciaApi`. São parâmetros operacionais iniciais ajustáveis, não critérios comprovados de qualidade facial. Não há peso mínimo nem resolução mínima de qualidade definidos.
+
+O preparador verifica o formato reconhecido pelo `ImageIO` nos bytes do arquivo. Alterar a extensão ou declarar um GIF como `image/png` não o torna permitido. O cabeçalho HTTP e o formato real são verificados separadamente; não há exigência adicional de correspondência entre PNG e JPEG quando ambos são permitidos.
+
+A validação de bytes ocorre antes da leitura; as dimensões são consultadas antes da decodificação da matriz de pixels. O servidor HTTP pode aplicar um limite próprio e rejeitar o corpo antes da execução do método. O projeto ainda não configura esse limite explicitamente em `application.properties`.
+
+## Cálculo e resposta
+
+A imagem é convertida para `GrayU8` usando `ConvertBufferedImage.convertFromSingle` do BoofCV. A média dos valores em cinza, na escala de 0 a 255, é calculada por `ImageStatistics.mean`:
+
+```text
+média = soma das intensidades / quantidade de pixels
 ```
 
-Or, if you don't have GraalVM installed, you can run the native executable build in a container using:
+A regra atual aprova `60 ≤ média ≤ 200`. Valores abaixo de 60 ou acima de 200 são reprovados. O cálculo e a decisão usam o valor original; apenas a média exposta no JSON é arredondada para duas casas decimais com `HALF_UP`.
 
-```shell script
-./mvnw package -Dnative -Dquarkus.native.container-build=true
+Exemplo ilustrativo de avaliação concluída, HTTP `200`:
+
+```json
+{
+  "status": "APROVADO",
+  "media": 128.00,
+  "mensagem": "Luminância dentro dos parâmetros aceitáveis."
+}
 ```
 
-You can then execute your native executable with: `./target/filtro-qualidade-ambiente-1.0.0-SNAPSHOT-runner`
+Uma imagem decodificada que falha na regra de luminância também retorna HTTP `200`, com `status: REPROVADO`. Isso indica que a avaliação foi concluída.
 
-If you want to learn more about building native executables, please consult <https://quarkus.io/guides/maven-tooling>.
+Entradas vazias, formatos reais não permitidos, falhas de leitura e limites excedidos tratados pelo preparador retornam HTTP `400`. Exemplo:
 
-## Related Guides
+```json
+{
+  "mensagem": "Formato de imagem não permitido. Envie um arquivo PNG ou JPEG."
+}
+```
 
-- REST Jackson ([guide](https://quarkus.io/guides/rest#json-serialisation)): Jackson serialization support for Quarkus REST. This extension is not compatible with the quarkus-resteasy extension, or any of the extensions that depend on it
+Um `Content-Type` não aceito pelo endpoint pode gerar HTTP `415`. Rejeições do servidor, anteriores ao método, podem ter outro formato de resposta. A ordem das propriedades JSON não é garantida.
 
-## Provided Code
+O JSON atual contém somente os campos acima. Escala, limites e região estão disponíveis no resultado Java, mas ainda não são expostos pela API.
 
-### REST
+## Organização e reutilização
 
-Easily start your REST Web Services
+| Componente | Responsabilidade |
+|---|---|
+| `api/LuminanciaApi` | Receber HTTP, coordenar chamadas e montar a resposta |
+| `validacao/ValidadorImagem` | Regras compartilhadas de validade, bytes e pixels |
+| `validacao/ValidacaoImagemException` | Comunicar falhas de preparação |
+| `imagem/PreparadorImagem` | Receber `byte[]`, validar, decodificar e converter |
+| `imagem/ImagemPreparada` | Agrupar imagem colorida e versão cinza |
+| `filtros/luminancia/FiltroLuminancia` | Calcular a média e aplicar os limites |
+| `resultado` | Resultado Java e situações da avaliação |
 
-[Related guide section...](https://quarkus.io/guides/getting-started-reactive#reactive-jax-rs-resources)
+Exemplo de reutilização em Java:
+
+```java
+PreparadorImagem preparador = new PreparadorImagem(5L * 1024 * 1024, 12_000_000L);
+ImagemPreparada imagem = preparador.preparar(fotoBytes);
+ResultadoAvaliacao resultado = new FiltroLuminancia().avaliar(imagem.cinza());
+```
+
+Prepare uma vez para compartilhar a imagem entre filtros. As imagens contidas no record são mutáveis: filtros devem apenas lê-las ou copiar antes de modificar. O filtro também valida a imagem recebida para proteger chamadas diretas.
+
+## Limitações e próximos passos
+
+A avaliação atual usa `IMAGEM_TOTAL`: fundo, cabelo e roupas influenciam a média. Média baixa isoladamente não comprova iluminação inadequada do rosto. Uma imagem decodificável também não comprova que o conteúdo seja uma fotografia ou contenha um rosto.
+
+O filtro permite informar o nome da região analisada, mas esse parâmetro apenas descreve a entrada: não localiza nem recorta o rosto. A localização facial, análise regional e medidas complementares serão desenvolvidas separadamente. Os limiares atuais são referências iniciais que precisam ser avaliadas com imagens representativas.
+
+O roteiro imediato está em `descritivo/Filtro_Qualidade_Ambiente_Guia_Inicial.pdf`; a proposta mais ampla também está em `descritivo/`.

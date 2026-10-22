@@ -56,6 +56,13 @@ public class PreparadorImagem {
             ImageReader leitor = leitores.next();
 
             try {
+                String formato = leitor.getFormatName();
+                if (!"png".equalsIgnoreCase(formato)
+                        && !"jpeg".equalsIgnoreCase(formato)) {
+                    throw new ValidacaoImagemException(
+                            "Formato de imagem não permitido. Envie um arquivo PNG ou JPEG.");
+                }
+
                 leitor.setInput(entradaImagem);
 
                 int largura = leitor.getWidth(0);
