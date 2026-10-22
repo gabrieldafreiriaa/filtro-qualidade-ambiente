@@ -1,4 +1,3 @@
-
 package br.gov.pr.celepar.qualidadeimagem.filtros.luminancia;
 
 import boofcv.alg.misc.ImageStatistics;
@@ -12,9 +11,12 @@ public class FiltroLuminancia {
     public static final double LIMITE_MINIMO = 60.0;
     public static final double LIMITE_MAXIMO = 200.0;
     public static final String ESCALA = "0-255";
-    public static final String REGIAO = "IMAGEM_TOTAL";
 
     public ResultadoAvaliacao avaliar(GrayU8 imagem) {
+        return avaliar(imagem, "IMAGEM_TOTAL");
+    }
+
+    public ResultadoAvaliacao avaliar(GrayU8 imagem, String regiaoAnalisada) {
         // 1. Valida a presença da imagem e de pixels para análise.
         if (!ValidadorImagem.valida(imagem)) {
             return new ResultadoAvaliacao(
@@ -24,7 +26,7 @@ public class FiltroLuminancia {
                     LIMITE_MINIMO,
                     LIMITE_MAXIMO,
                     ESCALA,
-                    REGIAO,
+                    regiaoAnalisada,
                     "A imagem fornecida é nula ou inválida.");
         }
 
@@ -54,7 +56,7 @@ public class FiltroLuminancia {
                 LIMITE_MINIMO,
                 LIMITE_MAXIMO,
                 ESCALA,
-                REGIAO,
+                regiaoAnalisada,
                 mensagem);
     }
 }
