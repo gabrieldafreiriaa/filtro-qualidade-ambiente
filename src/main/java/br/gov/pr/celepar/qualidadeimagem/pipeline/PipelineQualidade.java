@@ -20,9 +20,6 @@ public class PipelineQualidade {
     private final FiltroNitidez filtroNitidez = new FiltroNitidez();
     private final FiltroSimetriaLuz filtroSimetriaLuz = new FiltroSimetriaLuz();
 
-    @param
-    @return
-
     public ResultadoPipeline executar(byte[] fotoBytes) {
 
         ImagemPreparada imagem = preparador.preparar(fotoBytes);
@@ -31,9 +28,9 @@ public class PipelineQualidade {
         
         ResultadoAvaliacao resLuminancia = filtroLuminancia.avaliar(imagem.cinza());
         avaliacoes.add(resLuminancia);
-        ResultadoAvaliacao resNitidez = filtroNitidez.avaliar(imagem.cinza());
+        ResultadoAvaliacao resNitidez = filtroNitidez.avaliar(fotoBytes);
         avaliacoes.add(resNitidez);
-        ResultadoAvaliacao resSimetria = filtroSimetriaLuz.avaliar(imagem.cinza());
+        ResultadoAvaliacao resSimetria = filtroSimetriaLuz.avaliar(fotoBytes);
         avaliacoes.add(resSimetria);
 
         boolean todosAprovados = avaliacoes.stream()
@@ -43,15 +40,17 @@ public class PipelineQualidade {
         String mensagemGeral;
         if (todosAprovados) 
         {
+
             mensagemGeral = "Imagem aprovada em todos os critérios de qualidade";
+        
         } else {
             
             String falhas = avaliacoes.stream()
             .filter(r -> r.status() == StatusAvaliacao.REPROVADO)
             .map(ResultadoAvaliacao::filtro)
             .collect(java.util.stream.Collectors.joining(", "));
-
             mensagemGeral = "Imagem reprovada. Critérios que falharam: [" + falhas + "].";
+        
         }
         
         return new ResultadoPipeline(statusGeral, mensagemGeral, avaliacoes);

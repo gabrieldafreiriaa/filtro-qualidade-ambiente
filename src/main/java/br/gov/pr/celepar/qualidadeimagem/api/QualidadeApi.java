@@ -16,8 +16,6 @@ public class QualidadeApi {
 
     private final PipelineQualidade pipeline = new PipelineQualidade();
 
-    @param
-
     @POST
     @Consumes({"image/jpeg", "imagem/png"})
     @Produces(MediaType.APPLICATION_JSON)
