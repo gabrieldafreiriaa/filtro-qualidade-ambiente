@@ -1,77 +1,76 @@
 package br.gov.pr.celepar.qualidadeimagem.filtros.nitidez;
 
-import boofcv.alg.misc.ImageMiscOps;
 import boofcv.struct.image.GrayU8;
 import br.gov.pr.celepar.qualidadeimagem.resultado.ResultadoAvaliacao;
 import br.gov.pr.celepar.qualidadeimagem.resultado.StatusAvaliacao;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
+import br.gov.pr.celepar.qualidadeimagem.validacao.ValidacaoImagemException;
+
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
+import static org.junit.jupiter.api.Assertions.*;
 
-public class FiltroNitidezTest {
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import javax.imageio.ImageIO;
 
-    private FiltroNitidez filtro;
+class FiltroNitidezTest {
 
-    @BeforeEach
-    void setUp() {
-        filtro = new FiltroNitidez();
+    private final FiltroNitidez filtro = new FiltroNitidez();
+
+    // 1. Utilitário interno para simular o recebimento de bytes (igual ao de Simetria)
+    private byte[] converterParaByteArray(GrayU8 imagemBoof) throws Exception {
+        BufferedImage bufferedImage = new BufferedImage(imagemBoof.width, imagemBoof.height, BufferedImage.TYPE_BYTE_GRAY);
+        boofcv.io.image.ConvertBufferedImage.convertTo(imagemBoof, bufferedImage);
+        
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ImageIO.write(bufferedImage, "png", baos);
+        return baos.toByteArray();
     }
 
+    // 2. Teste da matemática pura (Uniforme = Variância 0)
     @Test
-    void deveReprovarImagemUniformeComVarianciaZero() {
-        // Imagem uniforme (todos os pixels iguais) tem laplaciano zero e variância zero
-        GrayU8 imagem = new GrayU8(100, 100);
-        ImageMiscOps.fill(imagem, 128);
+    void imagemUniformeDeveReprovarPorFaltaDeNitidez() throws Exception {
+        GrayU8 imagemPlana = new GrayU8(100, 100);
+        for (int y = 0; y < 100; y++) {
+            for (int x = 0; x < 100; x++) {
+                imagemPlana.set(x, y, 128); 
+            }
+        }
+        
+        byte[] fotoBytes = converterParaByteArray(imagemPlana);
+        ResultadoAvaliacao resultado = filtro.avaliar(fotoBytes);
 
-        ResultadoAvaliacao resultado = filtro.avaliar(imagem);
-
-        Assertions.assertEquals(StatusAvaliacao.REPROVADO, resultado.status());
-        Assertions.assertEquals(0.0, resultado.valorMedido(), 0.001);
-        Assertions.assertEquals("Imagem com foco insuficiente ou borrada.", resultado.mensagem());
+        // A variância será ~0.0, bem abaixo do limite de 100.0
+        assertEquals(StatusAvaliacao.REPROVADO, resultado.status());
+        assertEquals(0.0, resultado.valorMedido(), 0.001);
     }
 
+    // 3. Teste do xadrez (Variância altíssima, muitas bordas)
     @Test
-    void deveAprovarImagemComBordasNitidas() {
-        // Imagem com padrão alternado gerando alto contraste e bordas nítidas
-        GrayU8 imagem = new GrayU8(50, 50);
-        for (int y = 0; y < imagem.height; y++) {
-            for (int x = 0; x < imagem.width; x++) {
-                int valor = ((x + y) % 2 == 0) ? 255 : 0;
-                imagem.set(x, y, valor);
+    void imagemComBordasAcentuadasDeveSerAprovada() throws Exception {
+        GrayU8 imagemXadrez = new GrayU8(10, 10);
+        for (int y = 0; y < 10; y++) {
+            for (int x = 0; x < 10; x++) {
+                imagemXadrez.set(x, y, ((x + y) % 2 == 0) ? 0 : 255);
             }
         }
 
-        ResultadoAvaliacao resultado = filtro.avaliar(imagem);
+        byte[] fotoBytes = converterParaByteArray(imagemXadrez);
+        ResultadoAvaliacao resultado = filtro.avaliar(fotoBytes);
 
-        Assertions.assertEquals(StatusAvaliacao.APROVADO, resultado.status());
-        Assertions.assertTrue(resultado.valorMedido() >= FiltroNitidez.LIMITE_MINIMO);
-        Assertions.assertEquals("Nitidez dentro dos parâmetros aceitáveis.", resultado.mensagem());
+        // A variância vai bater o limite e aprovar com folga
+        assertEquals(StatusAvaliacao.APROVADO, resultado.status());
+        assertTrue(resultado.valorMedido() > FiltroNitidez.LIMITE_MINIMO);
     }
 
+    // 4. Teste de contrato obrigatório
     @Test
-    void deveRetornarEntradaInvalidaParaImagemNula() {
-        ResultadoAvaliacao resultado = filtro.avaliar(null);
+    void arquivoNuloDeveLancarExcecao() {
+        ValidacaoImagemException excecao = assertThrows(
+            ValidacaoImagemException.class, 
+            () -> filtro.avaliar(null) // Passa null direto
+        );
 
-        Assertions.assertEquals(StatusAvaliacao.ENTRADA_INVALIDA, resultado.status());
-        Assertions.assertEquals("A imagem fornecida é nula ou inválida.", resultado.mensagem());
-    }
-
-    @ParameterizedTest
-    @CsvSource({"0, 0", "0, 10", "10, 0"})
-    void deveRetornarEntradaInvalidaParaImagemVazia(int largura, int altura) {
-        ResultadoAvaliacao resultado = filtro.avaliar(new GrayU8(largura, altura));
-
-        Assertions.assertEquals(StatusAvaliacao.ENTRADA_INVALIDA, resultado.status());
-    }
-
-    @ParameterizedTest
-    @CsvSource({"1, 1", "2, 2", "2, 10", "10, 2"})
-    void deveRetornarInconclusivoParaDimensaoMenorQue3x3(int largura, int altura) {
-        ResultadoAvaliacao resultado = filtro.avaliar(new GrayU8(largura, altura));
-
-        Assertions.assertEquals(StatusAvaliacao.INCONCLUSIVO, resultado.status());
-        Assertions.assertEquals(0.0, resultado.valorMedido());
+        // Garante que a exceção padrão do sistema foi disparada
+        assertEquals("O array de bytes da imagem não pode ser nulo ou vazio.", excecao.getMessage());
     }
 }

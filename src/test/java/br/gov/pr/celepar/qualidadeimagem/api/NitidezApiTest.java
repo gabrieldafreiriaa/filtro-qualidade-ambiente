@@ -34,9 +34,10 @@ public class NitidezApiTest {
                 .then()
                 .statusCode(200)
                 .contentType("application/json")
-                .body("$", aMapWithSize(3))
+                .body("$", aMapWithSize(8))
+                .body("filtro", equalTo("NITIDEZ"))
                 .body("status", equalTo("REPROVADO"))
-                .body("variancia", equalTo(0.0f))
+                .body("valorMedido", equalTo(0.0f))
                 .body("mensagem", equalTo("Imagem com foco insuficiente ou borrada."));
     }
 
@@ -72,9 +73,9 @@ public class NitidezApiTest {
                 .body("conteudo invalido".getBytes(StandardCharsets.UTF_8))
                 .when().post("/api/qualidade/nitidez")
                 .then()
-                .statusCode(200)
+                .statusCode(400)
                 .contentType("application/json")
-                .body("mensagem", equalTo("O conteudo enviado não foi reconhecido como imagem."));
+                .body("mensagem", equalTo("O conteúdo enviado não foi reconhecido como imagem."));
     }
 
     @Test
@@ -84,8 +85,8 @@ public class NitidezApiTest {
                 .body(new byte[0])
                 .when().post("/api/qualidade/nitidez")
                 .then()
-                .statusCode(200)
+                .statusCode(400)
                 .contentType("application/json")
-                .body("mensagem", equalTo("Nenhuma imagem recebida."));
+                .body("mensagem", equalTo("O array de bytes da imagem não pode ser nulo ou vazio."));
     }
 }
