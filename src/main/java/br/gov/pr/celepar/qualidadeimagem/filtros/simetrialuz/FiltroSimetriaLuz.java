@@ -32,7 +32,7 @@ public class FiltroSimetriaLuz {
 
         if (width < 2) {
             return new ResultadoAvaliacao(
-                "Simetria de Iluminação",
+                "SIMETRIA DE ILUMINAÇÃO",
                 StatusAvaliacao.INCONCLUSIVO,
                 0.0,
                 0.0,
@@ -57,7 +57,7 @@ public class FiltroSimetriaLuz {
         String mensagem = aprovado ? "Iluminação simétrica." : "Assimetria de luz detectada. Possível sombra lateral dura.";
 
         return new ResultadoAvaliacao(
-            "Simetria de Iluminação", status, diferencaAbsoluta, 0.0, LIMITE_MAXIMO_DIFERENCA, "Δ Absoluto (0 a 255)", "Metade Esquerda vs Direita", mensagem
+            "SIMETRIA DE ILUMINAÇÃO", status, diferencaAbsoluta, 0.0, LIMITE_MAXIMO_DIFERENCA, "Δ Absoluto (0 a 255)", "Metade Esquerda vs Direita", mensagem
         );
     }
 }
