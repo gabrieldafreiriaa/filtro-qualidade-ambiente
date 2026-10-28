@@ -44,13 +44,21 @@ public class PipelineQualidade {
             mensagemGeral = "Imagem aprovada em todos os critérios de qualidade";
         
         } else {
+          
+            List<String>filtrosReprovados = avaliacoes.stream()
+                .filter(r -> r.status() == StatusAvaliacao.REPROVADO)
+                .map(ResultadoAvaliacao::filtro)
+                .toList();
             
-            String falhas = avaliacoes.stream()
-            .filter(r -> r.status() == StatusAvaliacao.REPROVADO)
-            .map(ResultadoAvaliacao::filtro)
-            .collect(java.util.stream.Collectors.joining(", "));
-            mensagemGeral = "Imagem reprovada. Critérios que falharam: [" + falhas + "].";
-        
+            String falhasFormatadas = String.join(", ", filtrosReprovados);
+
+            if (filtrosReprovados.size() == 1) {
+
+                mensagemGeral = "Imagem reprovada. O seguinte critério falhou: [" + falhasFormatadas + "]";
+            
+            } else {
+                mensagemGeral = "Imagem reprovada. Os seguintes critérios falharam: [" + falhasFormatadas + "]";
+            }
         }
         
         return new ResultadoPipeline(statusGeral, mensagemGeral, avaliacoes);
