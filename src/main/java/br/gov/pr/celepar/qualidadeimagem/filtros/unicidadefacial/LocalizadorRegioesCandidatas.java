@@ -13,7 +13,6 @@ public class LocalizadorRegioesCandidatas {
     private static final double PROPORCAO_MINIMA = 1.1;
     private static final double PROPORCAO_MAXIMA = 1.6;
 
-    /** Retorna regiões candidatas por cor e geometria, sem confirmar rostos. */
     public List<RegiaoImagem> localizar(BufferedImage imagem) {
         if (imagem == null) {
             throw new IllegalArgumentException(
@@ -74,6 +73,7 @@ public class LocalizadorRegioesCandidatas {
 
                                 if (mascaraPele[vizinhoY][vizinhoX]
                                         && !visitados[vizinhoY][vizinhoX]) {
+
                                     visitados[vizinhoY][vizinhoX] = true;
                                     fila.addLast(new int[] {
                                             vizinhoX, vizinhoY
@@ -86,7 +86,7 @@ public class LocalizadorRegioesCandidatas {
                     int larguraRegiao = maxX - minX + 1;
                     int alturaRegiao = maxY - minY + 1;
 
-                    // A área usa os pixels do componente, não os do retângulo.
+                    // Conta apenas os pixels do grupo, não todo o retângulo.
                     double areaImagem = (double) largura * altura;
                     double fracaoArea = quantidadePixels / areaImagem;
                     double proporcao = (double) alturaRegiao / larguraRegiao;
@@ -94,6 +94,7 @@ public class LocalizadorRegioesCandidatas {
                     if (fracaoArea >= FRACAO_AREA_MINIMA
                             && proporcao >= PROPORCAO_MINIMA
                             && proporcao <= PROPORCAO_MAXIMA) {
+
                         regioes.add(new RegiaoImagem(
                                 minX,
                                 minY,
@@ -108,6 +109,13 @@ public class LocalizadorRegioesCandidatas {
     }
 
     private boolean ehPixelDePele(int rgb) {
+        int alfa = (rgb >>> 24) & 255;
+
+        // Analisa apenas pixels totalmente opacos.
+        if (alfa < 255) {
+            return false;
+        }
+
         int vermelho = (rgb >> 16) & 255;
         int verde = (rgb >> 8) & 255;
         int azul = rgb & 255;
